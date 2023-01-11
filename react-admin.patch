@@ -1,0 +1,211 @@
+diff --git a/package.json b/package.json
+index 3edb93d..16e30c2 100644
+--- a/package.json
++++ b/package.json
+@@ -30,7 +30,9 @@
+     "autoprefixer": "^10.4.2",
+     "axios": "^0.26.1",
+     "postcss": "^8.4.8",
++    "ra-data-json-server": "^4.6.2",
+     "react": "^17.0.2",
++    "react-admin": "^4.6.2",
+     "react-dom": "^17.0.2",
+     "react-router-dom": "6",
+     "react-scripts": "5.0.0",
+diff --git a/public/index.html b/public/index.html
+index 3fe5ef4..c1e8732 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -3,6 +3,10 @@
+   <head>
+     <meta charset="utf-8" />
+     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
++    <link
++      rel="stylesheet"
++      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
++    />
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
+     <meta name="theme-color" content="#000000" />
+     <meta
+diff --git a/src/App.js b/src/App.js
+index ea9f27a..a8516e4 100644
+--- a/src/App.js
++++ b/src/App.js
+@@ -1,6 +1,7 @@
+ import './App.css';
+ import { Routes, Route } from 'react-router-dom';
+ import Dashboard from 'pages/dashboard';
++import RAdmin from 'components/react-admin/admin';
+ import Login from 'pages/login';
+ import Register from 'pages/register';
+ import Home from 'pages/home';
+@@ -17,7 +18,8 @@ function App() {
+         <Route path="/register" element={<Register />} />
+         <Route path="/forgot-password" element={<ForgotPassword />} />
+         <Route path="/password-reset/:token" element={<PasswordReset />} />
+-        <Route path="/dashboard" element={<Dashboard />} />
++        <Route path="/pre_dashboard" element={<Dashboard />} />
++        <Route path="/dashboard/*" element={<RAdmin />} />
+         <Route path="*" element={<NotFoundPage/>}
+         />
+       </Routes>
+diff --git a/src/components/react-admin/admin.js b/src/components/react-admin/admin.js
+new file mode 100644
+index 0000000..0273c19
+--- /dev/null
++++ b/src/components/react-admin/admin.js
+@@ -0,0 +1,24 @@
++import { Admin, Resource } from 'react-admin';
++import jsonServerProvider from 'ra-data-json-server';
++import { UserList } from 'components/react-admin/users';
++import { PostList, PostEdit, PostCreate } from 'components/react-admin/posts';
++
++import PostIcon from '@mui/icons-material/Book';
++import UserIcon from '@mui/icons-material/Group';
++
++import { AdminLayout } from 'components/react-admin/adminLayout';
++
++const dataProvider = jsonServerProvider('https://jsonplaceholder.typicode.com');
++
++const RAdmin = () => (
++  <Admin
++    basename="/dashboard"
++    dataProvider={dataProvider}
++    layout={AdminLayout}
++  >
++    <Resource name="posts" list={PostList} edit={PostEdit} create={PostCreate} icon={PostIcon} />
++    <Resource name="users" list={UserList} icon={UserIcon} recordRepresentation="name" />
++  </Admin>
++)
++
++export default RAdmin;
+diff --git a/src/components/react-admin/adminAppBar.js b/src/components/react-admin/adminAppBar.js
+new file mode 100644
+index 0000000..87b04cd
+--- /dev/null
++++ b/src/components/react-admin/adminAppBar.js
+@@ -0,0 +1,13 @@
++// in src/components/react-admin/adminAppBar.js
++import * as React from 'react';
++import { AppBar } from 'react-admin';
++
++import Navigation from 'components/Layouts/Navigation'
++import { useAuth } from 'hooks/auth'
++
++export const AdminAppBar = (props) => {
++    const { user } = useAuth({ middleware: 'auth' })    
++    return (
++        <Navigation user={user} />
++    )
++}
+diff --git a/src/components/react-admin/adminLayout.js b/src/components/react-admin/adminLayout.js
+new file mode 100644
+index 0000000..d1c8ec0
+--- /dev/null
++++ b/src/components/react-admin/adminLayout.js
+@@ -0,0 +1,6 @@
++// in src/components/react-admin/adminLayout.js
++import { Layout } from 'react-admin';
++
++import { AdminAppBar } from './adminAppBar';
++
++export const AdminLayout = props => <Layout {...props} appBar={AdminAppBar} />;
+diff --git a/src/components/react-admin/posts.js b/src/components/react-admin/posts.js
+new file mode 100644
+index 0000000..7e60d6f
+--- /dev/null
++++ b/src/components/react-admin/posts.js
+@@ -0,0 +1,57 @@
++// in src/components/react-admin/posts.tsx
++import {
++    List,
++    Datagrid,
++    TextField,
++    ReferenceField,
++    EditButton,
++    Edit,
++    Create,
++    SimpleForm,
++    ReferenceInput,
++    TextInput
++  } from 'react-admin';
++
++import { useRecordContext} from 'react-admin';
++
++const postFilters = [
++    <TextInput source="q" label="Search" alwaysOn />,
++    <ReferenceInput source="userId" label="User" reference="users" />
++];
++
++export const PostList = () => (
++    <List filters={postFilters} >
++      <Datagrid>
++        <TextField source="id" />
++        <ReferenceField source="userId" reference="users" />
++        <TextField source="title" />
++        <EditButton />
++      </Datagrid>
++    </List>
++  );
++
++const PostTitle = () => {
++  const record = useRecordContext();
++  return <span>Post {record ? `"${record.title}"` : ''}</span>;
++};
++
++export const PostEdit = () => (
++    <Edit title={<PostTitle />}>
++    <SimpleForm>
++        <TextInput source="id" disabled />
++        <ReferenceInput source="userId" reference="users" />
++        <TextInput source="title" />
++        <TextInput source="body" multiline rows={5} />
++    </SimpleForm>
++    </Edit>
++);
++
++export const PostCreate = () => (
++    <Create>
++        <SimpleForm>
++        <ReferenceInput source="userId" reference="users" />
++        <TextInput source="title" />
++        <TextInput source="body" multiline rows={5} />
++        </SimpleForm>
++    </Create>
++    );
+diff --git a/src/components/react-admin/users.js b/src/components/react-admin/users.js
+new file mode 100644
+index 0000000..4aa1802
+--- /dev/null
++++ b/src/components/react-admin/users.js
+@@ -0,0 +1,29 @@
++// in src/components/react-admin/users.tsx
++import { useMediaQuery } from '@mui/material';
++import { List, SimpleList, Datagrid, TextField, EmailField } from 'react-admin';
++
++export const UserList = () => {
++  const isSmall = useMediaQuery((theme) => theme.breakpoints.down('sm'));
++  return (
++    <List>
++      {isSmall ? (
++        <SimpleList
++          primaryText={(record) => record.name}
++          secondaryText={(record) => record.username}
++          tertiaryText={(record) => record.email}
++        />
++      ) : (
++        <Datagrid rowClick="edit">
++          <TextField source="id" />
++          <TextField source="name" />
++          <TextField source="username" />
++          <EmailField source="email" />
++          <TextField source="address.street" />
++          <TextField source="phone" />
++          <TextField source="website" />
++          <TextField source="company.name" />
++        </Datagrid>
++      )}
++    </List>
++  );
++};
+
