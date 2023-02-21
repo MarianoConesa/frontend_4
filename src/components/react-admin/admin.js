@@ -1,6 +1,7 @@
 import { Admin, Resource } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
 import { UserList } from 'components/react-admin/users';
+import { SanitarianList } from 'components/react-admin/sanitarians';
 import { PostList, PostEdit, PostCreate } from 'components/react-admin/posts';
 import { MigrationList } from 'components/react-admin/migrations';
 
@@ -22,6 +23,7 @@ const RAdmin = () => (
     <Resource name="migrations" list={MigrationList} icon={MigrationIcon} recordRepresentation="migration" />
     <Resource name="posts" list={PostList} edit={PostEdit} create={PostCreate} icon={PostIcon} />
     <Resource name="users" list={UserList} icon={UserIcon} recordRepresentation="name" />
+    <Resource name="sanitarios" list={SanitarianList} icon={UserIcon} recordRepresentation="name" />
   </Admin>
 )
 
